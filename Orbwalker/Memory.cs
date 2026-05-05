@@ -79,6 +79,18 @@ internal unsafe class Memory : IDisposable
     [return: MarshalAs(UnmanagedType.U1)]
     public static unsafe void MovementUpdate(MoveControllerSubMemberForMine* thisx, float wishdir_h, float wishdir_v, char arg4, byte align_with_camera, Vector3* direction)
     {
+        if (Util.IsFishingActive())
+        {
+            wishdir_h = 0f;
+            wishdir_v = 0f;
+            thisx->Wishdir_Horizontal = 0f;
+            thisx->Wishdir_Vertical = 0f;
+            thisx->Moved = 0;
+            thisx->Rotated = 0;
+            if (direction != null) *direction = default;
+            return;
+        }
+
         if (thisx->Unk_0x3F != 0)
             return;
 

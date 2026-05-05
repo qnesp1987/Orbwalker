@@ -99,6 +99,11 @@ public unsafe class Orbwalker : IDalamudPlugin
             MoveManager.ForceControllerBlock = fishingLock;
             try
             {
+                if (fishingLock)
+                {
+                    P.Memory.EnableMouseAutoMoveHook();
+                }
+
                 if ((ShouldPreventMovement() || fishingLock) && !ShouldUnlock)
                 {
                     HandleMovementPrevention();
