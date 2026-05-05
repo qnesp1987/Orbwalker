@@ -2,6 +2,7 @@ using Dalamud.Interface.Textures.TextureWraps;
 using ECommons.ExcelServices;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using Lumina.Excel;
 using Action = Lumina.Excel.Sheets.Action;
 
@@ -97,6 +98,17 @@ internal static unsafe class Util
         int adjustedCastTime = ActionManager.GetAdjustedCastTime(ActionType.Action, id);
 
         return adjustedCastTime > 0;
+    }
+
+    internal static bool IsFishingActive()
+    {
+        if (!Player.Available) return false;
+        if ((Job)Player.Object.ClassJob.RowId != Job.FSH) return false;
+        var ef = EventFramework.Instance();
+        if (ef == null) return false;
+        var handler = ef->EventHandlerModule.FishingEventHandler;
+        if (handler == null) return false;
+        return handler->State != FishingState.None;
     }
 
     internal static bool CastingWalkableAction()

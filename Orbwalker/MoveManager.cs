@@ -5,6 +5,7 @@ internal static class MoveManager
     internal static readonly int[] BlockedKeys = new[] { 321, 322, 323, 324, 325, 326 };
     internal static bool MovingDisabled { get; private set; }
     internal static bool MouseMovingDisabled { get; private set; }
+    internal static bool ForceControllerBlock;
 
     internal static void EnableMoving()
     {
@@ -14,7 +15,7 @@ internal static class MoveManager
             // Handle WASD Movement (and LMB+RMB Movement, if enabled)
             P.Memory.DisableHooks();
             // Handle Controller based Movement
-            if (C.ControllerMode)
+            if (C.ControllerMode || ForceControllerBlock)
             {
                 if (P.Memory.ForceDisableMovement > 0)
                 {
@@ -51,7 +52,7 @@ internal static class MoveManager
             }
 
             // Handle Controller based Movement
-            if (C.ControllerMode)
+            if (C.ControllerMode || ForceControllerBlock)
             {
                 P.Memory.ForceDisableMovement++;
             }

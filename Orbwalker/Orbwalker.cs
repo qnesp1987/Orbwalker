@@ -95,14 +95,23 @@ public unsafe class Orbwalker : IDalamudPlugin
             UpdateShouldUnlock();
             UpdateShouldBlock();
 
-            if (ShouldPreventMovement() && !ShouldUnlock)
+            bool fishingLock = Util.IsFishingActive();
+            MoveManager.ForceControllerBlock = fishingLock;
+            try
             {
-                HandleMovementPrevention();
+                if ((ShouldPreventMovement() || fishingLock) && !ShouldUnlock)
+                {
+                    HandleMovementPrevention();
+                }
+                else
+                {
+                    EnableMoving();
+                    ResetCancelledMoveKeys();
+                }
             }
-            else
+            finally
             {
-                EnableMoving();
-                ResetCancelledMoveKeys();
+                MoveManager.ForceControllerBlock = false;
             }
         }
         else
@@ -176,7 +185,7 @@ public unsafe class Orbwalker : IDalamudPlugin
 
     private void HandleMovementPrevention()
     {
-        if (C.ControllerMode || IsStronglyLocked)
+        if (C.ControllerMode || IsStronglyLocked || MoveManager.ForceControllerBlock)
         {
             MoveManager.DisableMoving();
         }
