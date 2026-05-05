@@ -3,6 +3,7 @@ using Dalamud.Utility.Signatures;
 using ECommons.Hooks;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.System.Input;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace Orbwalker;
@@ -11,11 +12,27 @@ internal unsafe class Memory : IDisposable
 {
     internal delegate bool UseActionDelegate(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8);
     internal Hook<UseActionDelegate> UseActionHook;
+
+    internal delegate nint PadPollDelegate(PadDevice* thisx);
+    internal Hook<PadPollDelegate> PadPollHook;
+
     internal Memory()
     {
         UseActionHook = Svc.Hook.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
         SignatureHelper.Initialise(this);
         PluginLog.Debug($"forceDisableMovementPtr = {forceDisableMovementPtr:X16}");
+
+        try
+        {
+            var pad = InputDeviceManager.Instance()->PadDevice;
+            if (pad != null)
+            {
+                var vtbl = *(nint**)pad;
+                PadPollHook = Svc.Hook.HookFromAddress<PadPollDelegate>(vtbl[2], PadPollDetour);
+                PadPollHook.Enable();
+            }
+        }
+        catch (Exception e) { e.Log(); }
         SendAction.Init((long targetObjectId, byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9) =>
         {
             if (Util.GetMovePreventionActions().Contains(actionId))
@@ -39,6 +56,16 @@ internal unsafe class Memory : IDisposable
             UseActionHook.Disable();
             PluginLog.Debug($"UseActionHook disabled");
         }
+    }
+
+    private nint PadPollDetour(PadDevice* thisx)
+    {
+        var ret = PadPollHook.Original(thisx);
+        if (Util.IsFishingActive())
+        {
+            Util.ZeroPadStatic(ref thisx->GamepadInputData);
+        }
+        return ret;
     }
 
     private bool UseActionDetour(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8)
@@ -81,8 +108,6 @@ internal unsafe class Memory : IDisposable
     {
         if (Util.IsFishingActive())
         {
-            wishdir_h = 0f;
-            wishdir_v = 0f;
             thisx->Wishdir_Horizontal = 0f;
             thisx->Wishdir_Vertical = 0f;
             thisx->Moved = 0;
@@ -103,8 +128,8 @@ internal unsafe class Memory : IDisposable
     Hook<InputData_IsInputIDKeyPressedDelegate> InputData_IsInputIDKeyPressedHook;
     byte InputData_IsInputIDKeyPressedDetour(nint a1, int key)
     {
-        //InternalLog.Verbose($"Pressed: {key}");
         if (key.EqualsAny(MoveManager.BlockedKeys)) return 0;
+        if (Util.IsFishingActive() && key.EqualsAny(MoveManager.FishingBlockedKeys)) return 0;
         return InputData_IsInputIDKeyPressedHook.Original(a1, key);
     }
 
@@ -116,6 +141,7 @@ internal unsafe class Memory : IDisposable
     {
         //InternalLog.Verbose($"Clicked: {key}");
         if (key.EqualsAny(MoveManager.BlockedKeys)) return 0;
+        if (Util.IsFishingActive() && key.EqualsAny(MoveManager.FishingBlockedKeys)) return 0;
         return InputData_IsInputIDKeyClickedHook.Original(a1, key);
     }
 
@@ -125,8 +151,8 @@ internal unsafe class Memory : IDisposable
     Hook<InputData_IsInputIDKeyHeldDelegate> InputData_IsInputIDKeyHeldHook;
     byte InputData_IsInputIDKeyHeldDetour(nint a1, int key)
     {
-        //InternalLog.Verbose($"Held: {key}");
         if (key.EqualsAny(MoveManager.BlockedKeys)) return 0;
+        if (Util.IsFishingActive() && key.EqualsAny(MoveManager.FishingBlockedKeys)) return 0;
         return InputData_IsInputIDKeyHeldHook.Original(a1, key);
     }
 
@@ -138,6 +164,7 @@ internal unsafe class Memory : IDisposable
     {
         //InternalLog.Verbose($"Released: {key}");
         if (key.EqualsAny(MoveManager.BlockedKeys)) return 0;
+        if (Util.IsFishingActive() && key.EqualsAny(MoveManager.FishingBlockedKeys)) return 0;
         return InputData_IsInputIDKeyReleasedHook.Original(a1, key);
     }
 
@@ -178,6 +205,8 @@ internal unsafe class Memory : IDisposable
         InputData_IsInputIDKeyReleasedHook.Dispose();
         UseActionHook.Disable();
         UseActionHook.Dispose();
+        PadPollHook?.Disable();
+        PadPollHook?.Dispose();
     }
 }
 

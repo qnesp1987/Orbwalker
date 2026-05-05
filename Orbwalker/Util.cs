@@ -3,6 +3,8 @@ using ECommons.ExcelServices;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using FFXIVClientStructs.FFXIV.Client.System.Input;
 using Lumina.Excel;
 using Action = Lumina.Excel.Sheets.Action;
 
@@ -100,9 +102,36 @@ internal static unsafe class Util
         return adjustedCastTime > 0;
     }
 
+    internal static void ZeroGamepadStick()
+    {
+        var fw = Framework.Instance();
+        if (fw != null)
+        {
+            ZeroPad(ref fw->GamepadInputs);
+            ZeroPad(ref fw->GamepadInputs2);
+        }
+        var idm = InputDeviceManager.Instance();
+        if (idm != null && idm->PadDevice != null)
+        {
+            ZeroPad(ref idm->PadDevice->GamepadInputData);
+        }
+    }
+
+    internal static void ZeroPadStatic(ref GamepadInputData g) => ZeroPad(ref g);
+
+    private static void ZeroPad(ref GamepadInputData g)
+    {
+        g.LeftStickX = 0;
+        g.LeftStickY = 0;
+        g.LeftStickLeft = 0f;
+        g.LeftStickRight = 0f;
+        g.LeftStickUp = 0f;
+        g.LeftStickDown = 0f;
+    }
+
     internal static bool IsFishingActive()
     {
-        if (!Player.Available) return false;
+        if (!CanUsePlugin()) return false;
         if ((Job)Player.Object.ClassJob.RowId != Job.FSH) return false;
         var ef = EventFramework.Instance();
         if (ef == null) return false;

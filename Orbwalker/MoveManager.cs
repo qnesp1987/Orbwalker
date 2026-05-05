@@ -3,6 +3,7 @@
 internal static class MoveManager
 {
     internal static readonly int[] BlockedKeys = new[] { 321, 322, 323, 324, 325, 326 };
+    internal static readonly int[] FishingBlockedKeys = new[] { 321, 322, 323, 324, 325, 326, 327, 671, 672, 673, 674 };
     internal static bool MovingDisabled { get; private set; }
     internal static bool MouseMovingDisabled { get; private set; }
     internal static bool ForceControllerBlock;

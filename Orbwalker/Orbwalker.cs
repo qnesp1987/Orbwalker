@@ -102,6 +102,7 @@ public unsafe class Orbwalker : IDalamudPlugin
                 if (fishingLock)
                 {
                     P.Memory.EnableMouseAutoMoveHook();
+                    Util.ZeroGamepadStick();
                 }
 
                 if ((ShouldPreventMovement() || fishingLock) && !ShouldUnlock)
